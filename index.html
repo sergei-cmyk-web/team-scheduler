@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Расписание команды</title>
+<style>
+  :root{
+    --bg:#F6F5F3;
+    --panel:#FFFFFF;
+    --ink:#1F2430;
+    --ink-soft:#5B6270;
+    --line:#E4E1DB;
+    --accent:#A9435C;
+    --accent-soft:#F3E1E6;
+    --err:#C24444;
+    --err-soft:#FBEAEA;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:28px 20px 80px;}
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 4px;}
+  h1{font-size:26px;margin:0;font-weight:800;letter-spacing:-.01em;}
+  .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);}
+  .who input{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;background:var(--panel);color:var(--ink);width:150px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px;}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .nav{display:flex;align-items:center;gap:8px;}
+  .nav button{border:1px solid var(--line);background:var(--panel);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:15px;color:var(--ink);}
+  .nav button:hover{border-color:var(--accent);color:var(--accent);}
+  .nav .label{font-weight:700;font-size:14px;min-width:190px;text-align:center;}
+  .viewtoggle{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .viewtoggle button{border:none;background:var(--panel);padding:7px 14px;font-size:13px;cursor:pointer;color:var(--ink-soft);}
+  .viewtoggle button.active{background:var(--ink);color:#fff;}
+  .btn-primary{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;}
+  .btn-primary:hover{opacity:.92;}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .day-view{position:relative;padding-left:56px;}
+  .thread{position:absolute;left:44px;top:0;bottom:0;width:0;border-left:2px dashed var(--line);}
+  .hour-row{position:relative;min-height:56px;border-top:1px solid var(--line);}
+  .hour-row:first-child{border-top:none;}
+  .hour-label{position:absolute;left:-56px;top:-7px;width:44px;text-align:right;font-size:11px;color:var(--ink-soft);}
+  .stitch{position:absolute;left:41px;top:6px;width:7px;height:7px;border-radius:50%;background:var(--line);}
+  .meetings-in-hour{margin-left:16px;padding:8px 0;display:flex;flex-direction:column;gap:6px;}
+  .meeting-chip{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:6px;padding:6px 10px;font-size:13px;display:flex;justify-content:space-between;gap:10px;align-items:center;}
+  .meeting-chip .m-main{display:flex;flex-direction:column;gap:1px;}
+  .meeting-chip .m-title{font-weight:700;}
+  .meeting-chip .m-meta{color:var(--ink-soft);font-size:12px;}
+  .meeting-chip .del{border:none;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:12px;padding:2px 6px;border-radius:6px;}
+  .meeting-chip .del:hover{background:var(--err-soft);color:var(--err);}
+  .empty-hour{margin-left:16px;padding:8px 0;color:var(--ink-soft);font-size:12px;opacity:.55;}
+  table.week{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.week th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--line);font-size:12px;color:var(--ink-soft);font-weight:700;}
+  table.week td{vertical-align:top;padding:6px;border-bottom:1px solid var(--line);min-width:130px;}
+  .week-chip{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:5px;padding:4px 6px;margin-bottom:4px;font-size:11.5px;line-height:1.3;}
+  .week-chip b{display:block;}
+  .overlay{position:fixed;inset:0;background:rgba(31,36,48,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:10;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--panel);border-radius:14px;padding:22px;width:100%;max-width:420px;}
+  .modal h2{margin:0 0 14px;font-size:16px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
+  .field input{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:13.5px;background:var(--bg);color:var(--ink);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);border-radius:8px;padding:9px 14px;font-size:13px;cursor:pointer;color:var(--ink-soft);}
+  .conflict-box{background:var(--err-soft);border:1px solid #ecc;color:var(--err);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-top:10px;line-height:1.5;}
+  .hint{font-size:11.5px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;}
+  .status{font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
+  footer{margin-top:26px;font-size:11.5px;color:var(--ink-soft);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Командный инструмент · демо</p>
+      <h1>Расписание встреч</h1>
+    </div>
+    <div class="who">
+      Вы:
+      <input id="myName" placeholder="Ваше имя" />
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="nav">
+        <button id="prevBtn">‹</button>
+        <div class="label" id="periodLabel"></div>
+        <button id="nextBtn">›</button>
+      </div>
+      <div class="viewtoggle">
+        <button id="dayBtn" class="active">День</button>
+        <button id="weekBtn">Неделя</button>
+      </div>
+      <button class="btn-primary" id="addBtn">+ Новая встреча</button>
+    </div>
+    <div class="status" id="statusLine"></div>
+  </div>
+
+  <div class="card" id="viewCard">
+    <div id="dayView" class="day-view"></div>
+    <div id="weekView" style="display:none;overflow-x:auto;"></div>
+  </div>
+
+  <footer>
+    Данные хранятся на self-hosted n8n + Google Sheets и видны всем сотрудникам с доступом к этой ссылке.
+    Слот нельзя занять, если у кого-то из участников уже есть встреча на это время в этот день.
+    Удалить встречу может только тот, кто указан организатором.
+  </footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Новая встреча</h2>
+    <div class="field"><label>Тема</label><input id="f-title" placeholder="Например: созвон по коллекции" /></div>
+    <div class="field"><label>Организатор</label><input id="f-organizer" placeholder="Ваше имя" /></div>
+    <div class="field"><label>Участники (через запятую)</label><input id="f-participants" placeholder="Аня, Игорь, Марина" /></div>
+    <div class="field"><label>Дата</label><input id="f-date" type="date" /></div>
+    <div class="row2">
+      <div class="field"><label>Начало</label><input id="f-start" type="time" /></div>
+      <div class="field"><label>Конец</label><input id="f-end" type="time" /></div>
+    </div>
+    <div class="hint">Проверка занятости выполняется на сервере (n8n) по каждому участнику отдельно.</div>
+    <div id="conflictBox"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="cancelBtn">Отмена</button>
+      <button class="btn-primary" id="saveBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== НАСТРОЙКИ — ЗАПОЛНИ СВОИМИ ЗНАЧЕНИЯМИ ======
+const N8N_BASE = 'https://ТВОЙ-N8N-ДОМЕН/webhook'; // например https://n8n.example.com/webhook
+const API_KEY_HEADER = 'X-Api-Key';
+const API_KEY_VALUE = 'ЗАМЕНИ_НА_СВОЙ_СЕКРЕТ';
+// ====================================================
+
+const HOURS = Array.from({length:13}, (_,i)=>8+i); // 08:00–20:00
+let currentDate = new Date();
+let viewMode = 'day';
+let meetings = [];
+
+function pad(n){return String(n).padStart(2,'0');}
+function fmtDate(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function toMinutes(hhmm){const [h,m]=hhmm.split(':').map(Number);return h*60+m;}
+function overlaps(aS,aE,bS,bE){return toMinutes(aS)<toMinutes(bE) && toMinutes(bS)<toMinutes(aE);}
+function normPeople(list){return list.map(p=>p.trim()).filter(Boolean);}
+function escapeHtml(s){return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function setStatus(msg, isError){
+  const el = document.getElementById('statusLine');
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--err)' : 'var(--ink-soft)';
+}
+
+async function apiFetch(path, options={}){
+  const res = await fetch(`${N8N_BASE}/${path}`, {
+    ...options,
+    headers:{
+      'Content-Type':'application/json',
+      [API_KEY_HEADER]: API_KEY_VALUE,
+      ...(options.headers||{})
+    }
+  });
+  return res;
+}
+
+async function loadMeetings(){
+  try{
+    const res = await apiFetch('meetings-list', {method:'GET'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    meetings = (data.meetings || []).map(m=>({
+      ...m,
+      participants: Array.isArray(m.participants) ? m.participants : String(m.participants||'').split(',').map(s=>s.trim()).filter(Boolean)
+    }));
+    setStatus('Синхронизировано с сервером');
+  }catch(e){
+    console.error('Ошибка загрузки встреч', e);
+    meetings = [];
+    setStatus('Не удалось связаться с сервером n8n — проверь N8N_BASE и что вебхук доступен снаружи', true);
+  }
+}
+
+async function createMeetingRemote(m){
+  const res = await apiFetch('meetings-create', {
+    method:'POST',
+    body: JSON.stringify(m)
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){
+    const err = new Error(data.message || 'Не удалось сохранить');
+    err.conflicts = data.conflicts || [];
+    throw err;
+  }
+  return data;
+}
+
+async function deleteMeetingRemote(id, organizer){
+  const res = await apiFetch('meetings-delete', {
+    method:'POST',
+    body: JSON.stringify({id, organizer})
+  });
+  if(!res.ok){
+    const data = await res.json().catch(()=>({}));
+    throw new Error(data.message || 'Не удалось удалить');
+  }
+  return true;
+}
+
+function renderPeriodLabel(){
+  const label = document.getElementById('periodLabel');
+  if(viewMode==='day'){
+    label.textContent = currentDate.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'});
+  }else{
+    const start = startOfWeek(currentDate);
+    const end = new Date(start); end.setDate(end.getDate()+6);
+    label.textContent = `${start.toLocaleDateString('ru-RU',{day:'numeric',month:'short'})} – ${end.toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}`;
+  }
+}
+function startOfWeek(d){const r=new Date(d);const day=(r.getDay()+6)%7;r.setDate(r.getDate()-day);return r;}
+
+function renderDayView(){
+  const el = document.getElementById('dayView');
+  const dateStr = fmtDate(currentDate);
+  const dayMeetings = meetings.filter(m=>m.date===dateStr).sort((a,b)=>toMinutes(a.start)-toMinutes(b.start));
+  let html = '<div class="thread"></div>';
+  for(const h of HOURS){
+    const hLabel = `${pad(h)}:00`;
+    const hourMeetings = dayMeetings.filter(m=>parseInt(m.start.split(':')[0],10)===h);
+    html += `<div class="hour-row"><span class="hour-label">${hLabel}</span><span class="stitch"></span>`;
+    if(hourMeetings.length){
+      html += '<div class="meetings-in-hour">';
+      for(const m of hourMeetings){
+        html += `<div class="meeting-chip">
+          <div class="m-main">
+            <span class="m-title">${escapeHtml(m.title)}</span>
+            <span class="m-meta">${m.start}–${m.end} · ${escapeHtml([m.organizer,...m.participants].join(', '))}</span>
+          </div>
+          <button class="del" data-id="${m.id}" data-organizer="${escapeHtml(m.organizer)}">Удалить</button>
+        </div>`;
+      }
+      html += '</div>';
+    }else{
+      html += '<div class="empty-hour">—</div>';
+    }
+    html += '</div>';
+  }
+  el.innerHTML = html;
+  el.querySelectorAll('.del').forEach(btn=>btn.addEventListener('click', onDeleteClick));
+}
+
+function renderWeekView(){
+  const el = document.getElementById('weekView');
+  const start = startOfWeek(currentDate);
+  const days = Array.from({length:7},(_,i)=>{const d=new Date(start); d.setDate(d.getDate()+i); return d;});
+  let html = '<table class="week"><thead><tr>';
+  for(const d of days) html += `<th>${d.toLocaleDateString('ru-RU',{weekday:'short'})}<br>${d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}</th>`;
+  html += '</tr></thead><tbody><tr>';
+  for(const d of days){
+    const dateStr = fmtDate(d);
+    const dayMeetings = meetings.filter(m=>m.date===dateStr).sort((a,b)=>toMinutes(a.start)-toMinutes(b.start));
+    html += '<td>';
+    if(!dayMeetings.length) html += '<span style="color:var(--ink-soft);opacity:.5;font-size:11px;">—</span>';
+    for(const m of dayMeetings) html += `<div class="week-chip"><b>${escapeHtml(m.title)}</b>${m.start}–${m.end}<br>${escapeHtml([m.organizer,...m.participants].join(', '))}</div>`;
+    html += '</td>';
+  }
+  html += '</tr></tbody></table>';
+  el.innerHTML = html;
+}
+
+async function render(){
+  renderPeriodLabel();
+  await loadMeetings();
+  if(viewMode==='day'){ renderDayView(); } else { renderWeekView(); }
+}
+
+async function onDeleteClick(e){
+  const id = e.currentTarget.getAttribute('data-id');
+  const meetingOrganizer = e.currentTarget.getAttribute('data-organizer');
+  const myName = document.getElementById('myName').value.trim();
+  if(!myName || myName.toLowerCase() !== meetingOrganizer.toLowerCase()){
+    alert('Удалить встречу может только организатор. Укажите своё имя как в поле "Организатор" этой встречи.');
+    return;
+  }
+  try{
+    await deleteMeetingRemote(id, myName);
+    await render();
+  }catch(err){
+    alert(err.message);
+  }
+}
+
+document.getElementById('prevBtn').addEventListener('click', async ()=>{currentDate.setDate(currentDate.getDate()-(viewMode==='day'?1:7));await render();});
+document.getElementById('nextBtn').addEventListener('click', async ()=>{currentDate.setDate(currentDate.getDate()+(viewMode==='day'?1:7));await render();});
+document.getElementById('dayBtn').addEventListener('click', async ()=>{
+  viewMode='day';
+  document.getElementById('dayBtn').classList.add('active');
+  document.getElementById('weekBtn').classList.remove('active');
+  document.getElementById('dayView').style.display='block';
+  document.getElementById('weekView').style.display='none';
+  await render();
+});
+document.getElementById('weekBtn').addEventListener('click', async ()=>{
+  viewMode='week';
+  document.getElementById('weekBtn').classList.add('active');
+  document.getElementById('dayBtn').classList.remove('active');
+  document.getElementById('dayView').style.display='none';
+  document.getElementById('weekView').style.display='block';
+  await render();
+});
+
+const overlay = document.getElementById('overlay');
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  document.getElementById('f-title').value='';
+  document.getElementById('f-organizer').value = document.getElementById('myName').value.trim();
+  document.getElementById('f-participants').value='';
+  document.getElementById('f-date').value = fmtDate(currentDate);
+  document.getElementById('f-start').value='';
+  document.getElementById('f-end').value='';
+  document.getElementById('conflictBox').innerHTML='';
+  overlay.classList.add('show');
+});
+document.getElementById('cancelBtn').addEventListener('click', ()=>overlay.classList.remove('show'));
+
+document.getElementById('saveBtn').addEventListener('click', async ()=>{
+  const title = document.getElementById('f-title').value.trim();
+  const organizer = document.getElementById('f-organizer').value.trim();
+  const participants = normPeople(document.getElementById('f-participants').value.split(','));
+  const date = document.getElementById('f-date').value;
+  const start = document.getElementById('f-start').value;
+  const end = document.getElementById('f-end').value;
+  const box = document.getElementById('conflictBox');
+  const saveBtn = document.getElementById('saveBtn');
+  box.innerHTML='';
+
+  if(!title || !organizer || !date || !start || !end){
+    box.innerHTML = '<div class="conflict-box">Заполните тему, организатора, дату и время.</div>';
+    return;
+  }
+  if(toMinutes(start) >= toMinutes(end)){
+    box.innerHTML = '<div class="conflict-box">Время начала должно быть раньше времени конца.</div>';
+    return;
+  }
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Сохраняю…';
+  try{
+    await createMeetingRemote({title, organizer, participants, date, start, end});
+    overlay.classList.remove('show');
+    await render();
+  }catch(err){
+    if(err.conflicts && err.conflicts.length){
+      const lines = err.conflicts.map(c=>`${c.person} уже занят(а): «${c.with_title}» ${c.with_start}–${c.with_end}`);
+      box.innerHTML = '<div class="conflict-box"><b>Слот занят:</b><br>'+lines.join('<br>')+'</div>';
+    }else{
+      box.innerHTML = `<div class="conflict-box">${escapeHtml(err.message)}</div>`;
+    }
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Сохранить';
+  }
+});
+
+// имя запоминаем локально в браузере (это уже обычный сайт, а не Claude-артефакт)
+const nameInput = document.getElementById('myName');
+nameInput.value = localStorage.getItem('my-name') || '';
+nameInput.addEventListener('change', ()=>localStorage.setItem('my-name', nameInput.value.trim()));
+
+render();
+</script>
+</body>
+</html>
